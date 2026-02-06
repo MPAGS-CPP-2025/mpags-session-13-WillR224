@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <string>
+#include <iostream>
 
 /**
  * \file PlayfairCipher.cpp
@@ -62,27 +63,67 @@ void PlayfairCipher::setKey(const std::string& key)
 }
 
 std::string PlayfairCipher::applyCipher(const std::string& inputText,
-                                        const CipherMode /*cipherMode*/) const
+                                        const CipherMode cipherMode) const
 {
     // Create the output string, initially a copy of the input text
     std::string outputText{inputText};
+    if (cipherMode == CipherMode::Encrypt){
+        std::transform(std::begin(outputText), std::end(outputText), std::begin(outputText),
+                    [](char c) { return (c == 'J') ? 'I' : c; });
 
-    // Change J -> I
-
-    // Find repeated characters and add an X (or a Q for repeated X's)
-
-    // If the size of the input is odd, add a trailing Z
-
-    // Loop over the input bigrams
-
-    // - Find the coordinates in the grid for each bigram
-
-    // - Apply the rules to these coords to get new coords
-
-    // - Find the letters associated with the new coords
-
-    // - Make the replacements
-
-    // Return the output text
+        // Find repeated characters and add an X (or a Q for repeated X's)
+        for(std::size_t i{0}; i < outputText.size()-1; i+=2){
+            if (outputText[i] == outputText[i+1]){
+                outputText.insert(i+1, 1, (outputText[i] == 'X') ? 'Q' : 'X');
+            }
+        }
+        if (outputText.size() % 2 != 0){
+            if (outputText[outputText.size() - 1] == 'Z')
+                outputText += 'X';
+            outputText += 'Z';
+        }
+        // Loop over the input bigrams
+        for (std::size_t i{0}; i < outputText.size()-1; i+=2){
+            auto [row1,col1] = charLookup_.at(outputText[i]);
+            auto [row2,col2] = charLookup_.at(outputText[i+1]);
+            // - Find the coordinates in the grid for each bigram
+            if (row1 == row2){
+                col1 = (col1 + 1) % gridSize_;
+                col2 = (col2 + 1) % gridSize_;
+            }
+            else if (col1 == col2){
+                row1 = (row1 + 1) % gridSize_;
+                row2 = (row2 + 1) % gridSize_;
+            }
+            else{
+                std::swap(col1,col2);
+            }
+            
+            outputText[i] = coordLookup_.at({row1, col1});
+            outputText[i+1] = coordLookup_.at({row2, col2});
+        }
+    }
+    else{
+        // Loop over the input bigrams
+        for (std::size_t i{0}; i < outputText.size()-1; i+=2){
+            auto [row1,col1] = charLookup_.at(outputText[i]);
+            auto [row2,col2] = charLookup_.at(outputText[i+1]);
+            // - Find the coordinates in the grid for each bigram
+            if (row1 == row2){
+                col1 = (col1 - 1 + gridSize_) % gridSize_;
+                col2 = (col2 - 1 + gridSize_) % gridSize_;
+            }
+            else if (col1 == col2){
+                row1 = (row1 - 1 + gridSize_) % gridSize_;
+                row2 = (row2 - 1 + gridSize_) % gridSize_;
+            }
+            else{
+                std::swap(col1,col2);
+            }
+            
+            outputText[i] = coordLookup_.at({row1, col1});
+            outputText[i+1] = coordLookup_.at({row2, col2});
+        }
+    }
     return outputText;
 }
